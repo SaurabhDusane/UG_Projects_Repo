@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopBot - Customer Service Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .bot-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .bot-info h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .bot-status {
+            font-size: 12px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .bot .message-avatar {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+
+        .user .message-avatar {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .message-content {
+            max-width: 250px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+        }
+
+        .bot .message-content {
+            background: #f3f4f6;
+            color: #374151;
+            border-bottom-left-radius: 6px;
+        }
+
+        .user .message-content {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .quick-reply {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-reply:hover {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: #4f46e5;
+        }
+
+        .send-btn {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="bot-avatar">🤖</div>
+            <div class="bot-info">
+                <h3>ShopBot Assistant</h3>
+                <div class="bot-status">
+                    <div class="status-dot"></div>
+                    Online • Ready to help
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    Hi! I'm ShopBot, your customer service assistant. How can I help you today?
+                    <div class="quick-replies">
+                        <div class="quick-reply" onclick="sendQuickReply('Track my order')">Track Order</div>
+                        <div class="quick-reply" onclick="sendQuickReply('Return policy')">Returns</div>
+                        <div class="quick-reply" onclick="sendQuickReply('Product info')">Products</div>
+                        <div class="quick-reply" onclick="sendQuickReply('Contact support')">Support</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">🤖</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" class="input-field" id="messageInput" placeholder="Type your message..." maxlength="500">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m22 2-7 20-4-9-9-4zm0 0-10 10"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Sample data for realistic responses
+        const orderDatabase = {
+            'ORD12345': { status: 'shipped', tracking: 'TRK789456', estimated: '2-3 business days' },
+            'ORD67890': { status: 'processing', tracking: null, estimated: '5-7 business days' },
+            'ORD11111': { status: 'delivered', tracking: 'TRK123789', estimated: 'delivered yesterday' }
+        };
+
+        const knowledgeBase = {
+            greetings: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
+            farewells: ['bye', 'goodbye', 'see you', 'thanks', 'thank you'],
+            orderTracking: ['track', 'order', 'shipping', 'delivery', 'where is my order'],
+            returns: ['return', 'refund', 'exchange', 'policy', 'send back'],
+            products: ['product', 'item', 'catalog', 'availability', 'stock', 'price', 'shop', 'browse'],
+            support: ['help', 'support', 'contact', 'phone', 'email', 'agent'],
+            payment: ['payment', 'card', 'billing', 'charge', 'money', 'cost'],
+            website: ['website', 'site', 'homepage', 'main page', 'visit', 'redirect', 'link'],
+            account: ['account', 'profile', 'login', 'register', 'sign up', 'sign in'],
+            checkout: ['checkout', 'cart', 'buy', 'purchase', 'pay now']
+        };
+
+        // Website URLs for redirection
+        const websiteUrls = {
+            main: 'https://example.com',
+            shop: 'https://shop.example.com',
+            account: 'https://account.example.com',
+            support: 'https://support.example.com',
+            checkout: 'https://checkout.example.com',
+            returns: 'https://returns.example.com',
+            github: 'https://github.com',
+            demo: 'https://jsonplaceholder.typicode.com' // For demo purposes
+        };
+
+        function addMessage(content, isUser = false, hasButtons = false, buttons = []) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="message-content">
+                    ${content}
+                    ${hasButtons ? createButtonsHTML(buttons) : ''}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function createButtonsHTML(buttons) {
+            if (!buttons.length) return '';
+            
+            return `
+                <div class="quick-replies">
+                    ${buttons.map(button => 
+                        `<div class="quick-reply" onclick="${button.action}">${button.text}</div>`
+                    ).join('')}
+                </div>
+            `;
+        }
+
+        function redirectToWebsite(url, siteName = 'website') {
+            addMessage(`🔗 Redirecting you to ${siteName}... Opening in a new tab!`);
+            setTimeout(() => {
+                window.open(url, '_blank');
+            }, 1000);
+        }
+
+        function showWebsiteOptions() {
+            const buttons = [
+                { text: '🏠 Main Site', action: `redirectToWebsite('${websiteUrls.demo}', 'demo site')` },
+                { text: '🛍️ Shop Now', action: `redirectToWebsite('${websiteUrls.github}', 'GitHub')` },
+                { text: '👤 My Account', action: `sendQuickReply('account help')` },
+                { text: '🛒 Checkout', action: `sendQuickReply('checkout help')` }
+            ];
+            
+            addMessage('Where would you like to go? Choose from the options below:', false, true, buttons);
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function analyzeMessage(message) {
+            const msg = message.toLowerCase();
+            
+            // Check for order numbers
+            const orderMatch = msg.match(/ord\d+/i);
+            if (orderMatch || msg.includes('track') || msg.includes('order')) {
+                return 'order_tracking';
+            }
+            
+            // Check for website/redirect requests
+            if (msg.includes('website') || msg.includes('site') || msg.includes('redirect') || 
+                msg.includes('link') || msg.includes('homepage') || msg.includes('main page')) {
+                return 'website';
+            }
+            
+            // Check categories
+            for (const [category, keywords] of Object.entries(knowledgeBase)) {
+                if (keywords.some(keyword => msg.includes(keyword))) {
+                    return category;
+                }
+            }
+            
+            return 'general';
+        }
+
+        function generateResponse(message, category) {
+            const responses = {
+                greetings: [
+                    "Hello! How can I assist you today?",
+                    "Hi there! What can I help you with?",
+                    "Good day! I'm here to help with any questions you have."
+                ],
+                farewells: [
+                    "Thank you for contacting us! Have a great day! 😊",
+                    "You're welcome! Don't hesitate to reach out if you need anything else.",
+                    "Goodbye! Thanks for choosing our store!"
+                ],
+                order_tracking: () => {
+                    const orderMatch = message.match(/ord\d+/i);
+                    if (orderMatch) {
+                        const orderNum = orderMatch[0].toUpperCase();
+                        const order = orderDatabase[orderNum];
+                        if (order) {
+                            return `Great! I found your order ${orderNum}. Status: <strong>${order.status}</strong>. ${
+                                order.tracking ? `Tracking: ${order.tracking}. ` : ''
+                            }Estimated delivery: ${order.estimated}.`;
+                        } else {
+                            return `I couldn't find order ${orderNum}. Please double-check the order number or contact support at support@shopbot.com`;
+                        }
+                    }
+                    return "I'd be happy to help track your order! Please provide your order number (format: ORD12345) or try these sample orders: ORD12345, ORD67890, ORD11111";
+                },
+                returns: [
+                    "Our return policy allows returns within 30 days of purchase. Items must be unused and in original packaging. You can start a return by visiting our Returns Center or contacting support.",
+                    "To return an item: 1) Go to your account 2) Find the order 3) Click 'Return Item' 4) Print the prepaid label. Returns are processed within 5-7 business days."
+                ],
+                products: [
+                    "I can help you find products! What are you looking for? You can browse our catalog, check availability, or ask about specific items.",
+                    "Our product catalog includes electronics, clothing, home goods, and more. What category interests you? I can help check stock and pricing."
+                ],
+                support: [
+                    "For additional support, you can reach us at:<br>📧 Email: support@shopbot.com<br>📞 Phone: 1-800-SHOPBOT<br>💬 Live Chat: Available 24/7<br>🕒 Hours: Mon-Fri 9AM-6PM EST",
+                    "Our support team is here to help! You can contact us via email, phone, or continue chatting with me. What do you need assistance with?"
+                ],
+                payment: [
+                    "We accept all major credit cards, PayPal, Apple Pay, and Google Pay. All transactions are secure with 256-bit SSL encryption.",
+                    "Having payment issues? Please check that your card info is correct and that you have sufficient funds. Contact your bank if the problem persists."
+                ],
+                general: [
+                    "I'm not sure I understand. Could you please rephrase your question? I can help with orders, returns, products, and support.",
+                    "I'd love to help! Can you provide more details about what you're looking for? I'm here to assist with any questions.",
+                    "Let me help you with that. Could you be more specific about what you need? I can assist with tracking orders, returns, product info, and more."
+                ]
+            };
+
+            const categoryResponses = responses[category];
+            if (typeof categoryResponses === 'function') {
+                return categoryResponses();
+            }
+            return categoryResponses[Math.floor(Math.random() * categoryResponses.length)];
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, true);
+            messageInput.value = '';
+            sendBtn.disabled = true;
+
+            // Show typing indicator
+            showTyping();
+
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+
+            // Hide typing and generate response
+            hideTyping();
+            const category = analyzeMessage(message);
+            const response = generateResponse(message, category);
+            addMessage(response);
+
+            sendBtn.disabled = false;
+            messageInput.focus();
+        }
+
+        function sendQuickReply(text) {
+            messageInput.value = text;
+            sendMessage();
+        }
+
+        // Event listeners
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        messageInput.addEventListener('input', () => {
+            sendBtn.disabled = !messageInput.value.trim();
+        });
+
+        // Focus input on load
+        messageInput.focus();
+    </script>
+</body>
+</html>
